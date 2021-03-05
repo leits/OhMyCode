@@ -38,9 +38,14 @@ data['stars'] = repo.stargazers_count
 data['open_issues'] = repo.open_issues_count
 data['forks'] = repo.forks_count
 
-data['issues'] = list(repo.get_issues(since=time_mark, state="all"))
+data['issues'] = []
+data['pulls'] = []
 
-data['pulls'] = [p for p in repo.get_pulls(state="all") if p.updated_at > time_mark]
+for issue in repo.get_issues(since=time_mark, state="all"):
+    if issue.pull_request:
+        data['pulls'].append(issue)
+    else:
+        data['issues'].append(issue)
 
 releases = repo.get_releases()
 
