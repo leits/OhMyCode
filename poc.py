@@ -11,152 +11,135 @@ from email.mime.text import MIMEText
 
 import pandas
 import requests
+import jinja2
 import matplotlib.pyplot as plt
 
-from jinja2 import Template
 from github import Github
 
-# In[]:
+from dotenv import load_dotenv
+
+load_dotenv()
+
 GITHUB_API_TOKEN = os.getenv("GITHUB_API_TOKEN")
 MAILGUN_API_KEY = os.getenv("MAILGUN_API_KEY")
 MAILGUN_DOMAIN = os.getenv("MAILGUN_DOMAIN")
 
-# In[]:
-data = {}
+TEMPLATE_FILE = "letter.j2"
+CHART_NAME = "views_chart"
 
-now = datetime.now()
-time_mark = now - timedelta(days=1)
-data['time_mark'] = time_mark
+TIME_MARK = datetime.now() - timedelta(days=1)
 
-g = Github(GITHUB_API_TOKEN)
 
-repo = g.get_repo("leits/MeetingBar")
+def collect_github_data(since: timedelta) -> dict:
+    g = Github(GITHUB_API_TOKEN)
+    repo = g.get_repo("leits/MeetingBar")
 
-print("Connected to repo")
+    print("Connected to repo")
 
-data['stars'] = repo.stargazers_count
-data['open_issues'] = repo.open_issues_count
-data['forks'] = repo.forks_count
+    data = {
+        "since": since,
+        "stars": repo.stargazers_count,
+        "open_issues": repo.open_issues_count,
+        "forks": repo.forks_count,
+        "downloads": 0,
+        "issues": [],
+        "pulls": [],
+    }
 
-data['issues'] = []
-data['pulls'] = []
+    for issue in repo.get_issues(since=since, state="all"):
+        if issue.pull_request:
+            data["pulls"].append(issue)
+        else:
+            data["issues"].append(issue)
 
-for issue in repo.get_issues(since=time_mark, state="all"):
-    if issue.pull_request:
-        data['pulls'].append(issue)
-    else:
-        data['issues'].append(issue)
+    for release in repo.get_releases():
+        for a in release.get_assets():
+            data["downloads"] += a.download_count
 
-releases = repo.get_releases()
+    data["referrers"] = repo.get_top_referrers()
 
-downloads = 0
-for release in releases:
-    for a in release.get_assets():
-        downloads += a.download_count
+    data["traffic"] = repo.get_views_traffic(per="day")
+    data["traffic"]["yesterday"] = data["traffic"]["views"][-2]
 
-data['downloads'] = downloads
+    print("Collected repo info")
 
-data['referrers'] = repo.get_top_referrers()
+    rate_limit = g.get_rate_limit()
+    print(f"Rate limit: {rate_limit}")
 
-data['traffic'] = repo.get_views_traffic(per="day")
+    return data
 
-print("Collected repo info")
 
-# g.get_rate_limit()
+def plot_views(views) -> bytes:
+    df = pandas.DataFrame(columns=["timestamp", "count", "uniques"])
 
-# In[]:
+    for i, day in enumerate(views):
+        df.loc[i] = [day.timestamp, day.count, day.uniques]
 
-df = pandas.DataFrame(columns=['timestamp', 'count', 'uniques'])
+    df.plot(x="timestamp", y=["count", "uniques"], style=".-")
 
-for i, day in enumerate(data['traffic']['views']):
-    df.loc[i] = [day.timestamp, day.count, day.uniques]
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", bbox_inches="tight")
+    buf.seek(0)
+    chart = buf.read()
+    buf.close()
 
-df.plot(x='timestamp', y=['count', 'uniques'], style='.-')
+    print("Rendered views chart")
 
-buf = io.BytesIO()
-plt.savefig(buf, format='png', bbox_inches = 'tight')
-buf.seek(0)
-chart = buf.read()
-buf.close()
+    return chart
 
-data["views_image_src"] = "cid:views_chart"
 
-print("Rendered views chart")
+def render_html(data: dict) -> str:
+    templateLoader = jinja2.FileSystemLoader(searchpath="./")
+    templateEnv = jinja2.Environment(loader=templateLoader)
 
-# In[]:
-template = '''
-<p>
-⭐ Stars: {{ data.stars }}<br />
-💬 Open Issues: {{ data.open_issues }}<br />
-👀 Views (2 weeks): {{ data.traffic.count }} ({{ data.traffic.uniques }} uniques)<br />
-📥 Downloads: {{ data.downloads }}<br />
-</p>
+    template = templateEnv.get_template(TEMPLATE_FILE)
+    html = template.render(data=data)
 
-<h3>💬 Issues</h3>
-<p>
-{% for issue in data.issues %}
-    {{ "🟢" if issue.state == "open" else "🔴" }}
-    <a href="{{ issue.html_url }}">#{{ issue.number }}</a> {{ issue.title }}
-    {{ "🆕" if issue.created_at < data.time_mark else "" }}
-    <br />
-{% else %}
-No updates
-{% endfor %}
-</p>
+    print("Rendered html")
 
-<h3>✏️ Pull Requests</h3>
-<p>
-{% for pull in data.pulls %}
-    {{ "🟢" if pull.state == "open" else "🔴" }}
-    <a href="{{ pull.html_url }}">#{{ pull.number }}</a> {{ pull.title }}
-    {{ "🆕" if pull.created_at < data.time_mark else "" }}
-    <br />
-{% else %}
-No updates
-{% endfor %}
-</p>
+    return html
 
-<h3>🔗 Referrers</h3>
-<p>
-{% for ref in data.referrers %}
-    {{ ref.count }} ({{ ref.uniques }}) - {{ ref.referrer }} <br />
-{% endfor %}
-</p>
 
-<h3>👀 Views</h3>
-<p><img src="{{ data.views_image_src }}" alt="views" /></p>
-'''
+def send_email(html, chart):
+    now = datetime.now()
+    html_part = MIMEMultipart(_subtype="related")
+    html_part["Subject"] = f"Daily update of MeetingBar ({now.strftime('%d %b %Y')})"
+    html_part["From"] = "leits.dev@gmail.com"
+    html_part["To"] = "leits.dev@gmail.com"
 
-tm = Template(template)
-html = tm.render(data=data)
+    body = MIMEText(html, _subtype="html")
 
-print("Rendered html")
+    html_part.attach(body)
+    img = MIMEImage(chart, "png")
+    img.add_header("Content-Id", f"<{CHART_NAME}>")
+    img.add_header("Content-Disposition", "inline", filename=CHART_NAME)
 
-# from IPython.core.display import display, HTML
-# display(HTML(html))
+    html_part.attach(img)
 
-# In[]:
+    res = requests.post(
+        f"https://api.mailgun.net/v3/{MAILGUN_DOMAIN}/messages.mime",
+        auth=("api", MAILGUN_API_KEY),
+        data={
+            "from": html_part["From"],
+            "to": html_part["To"],
+            "subject": html_part["Subject"],
+        },
+        files={"message": html_part.as_string()},
+    )
+    print("Sent email")
+    print(res.text)
 
-html_part = MIMEMultipart(_subtype='related')
-html_part['Subject'] = f"Daily update of MeetingBar ({now.strftime('%d %b %Y')})"
-html_part['From'] = "leits.dev@gmail.com"
-html_part['To'] = "leits.dev@gmail.com"
 
-body = MIMEText(html, _subtype='html')
+def main():
+    data = collect_github_data(TIME_MARK)
 
-html_part.attach(body)
-img = MIMEImage(chart, 'png')
-img.add_header('Content-Id', '<views_chart>')
-img.add_header("Content-Disposition", "inline", filename="views_chart")
+    chart = plot_views(data["traffic"]["views"])
 
-html_part.attach(img)
+    data["views_image_src"] = f"cid:{CHART_NAME}"
+    html = render_html(data)
 
-res = requests.post(
-    f"https://api.mailgun.net/v3/{MAILGUN_DOMAIN}/messages.mime",
-    auth=("api", MAILGUN_API_KEY),
-    data={"from": "leits <leits.dev@gmail.com>", "to": "leits.dev@gmail.com", "subject": "Hello"},
-    files={"message": html_part.as_string()}
-)
+    send_email(html, chart)
 
-print("Sent email")
-print(res.text)
+
+if __name__ == "__main__":
+    main()

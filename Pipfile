@@ -11,6 +11,7 @@ requests = "*"
 aiohttp = "*"
 jinja2 = "*"
 pandas = "*"
+python-dotenv = "*"
 
 [dev-packages]
 

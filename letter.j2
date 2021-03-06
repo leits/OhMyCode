@@ -1,0 +1,40 @@
+<p>
+⭐ Stars: {{ data.stars }}<br />
+💬 Open Issues: {{ data.open_issues }}<br />
+👀 Views: {{ data.traffic.yesterday.count }} ({{ data.traffic.yesterday.uniques }} uniques)<br />
+📥 Downloads: {{ data.downloads }}<br />
+</p>
+
+<h3>💬 Issues</h3>
+<p>
+{% for issue in data.issues %}
+    {{ "🟢" if issue.state == "open" else "🔴" }}
+    <a href="{{ issue.html_url }}">#{{ issue.number }}</a> {{ issue.title }}
+    {{ "🆕" if issue.created_at < data.since else "" }}
+    <br />
+{% else %}
+No updates
+{% endfor %}
+</p>
+
+<h3>✏️ Pull Requests</h3>
+<p>
+{% for pull in data.pulls %}
+    {{ "🟢" if pull.state == "open" else "🔴" }}
+    <a href="{{ pull.html_url }}">#{{ pull.number }}</a> {{ pull.title }}
+    {{ "🆕" if pull.created_at < data.since else "" }}
+    <br />
+{% else %}
+No updates
+{% endfor %}
+</p>
+
+<h3>🔗 Referrers</h3>
+<p>
+{% for ref in data.referrers %}
+    {{ ref.count }} ({{ ref.uniques }}) - {{ ref.referrer }} <br />
+{% endfor %}
+</p>
+
+<h3>👀 Views</h3>
+<p><img src="{{ data.views_image_src }}" alt="views" /></p>
