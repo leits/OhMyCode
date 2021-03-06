@@ -12,6 +12,8 @@ aiohttp = "*"
 jinja2 = "*"
 pandas = "*"
 python-dotenv = "*"
+psycopg2-binary = "*"
+sqlalchemy = "*"
 
 [dev-packages]
 
