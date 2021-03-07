@@ -51,7 +51,7 @@ class Repository(Base):
         if repo:
             repo.stats = stats
         else:
-            repo = cls(owner, name, stats)
+            repo = cls(owner=owner, name=name, stats=stats)
             session.add(repo)
         session.commit()
 
