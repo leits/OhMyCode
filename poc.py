@@ -26,13 +26,15 @@ GITHUB_API_TOKEN = os.getenv("GITHUB_API_TOKEN")
 MAILGUN_API_KEY = os.getenv("MAILGUN_API_KEY")
 MAILGUN_DOMAIN = os.getenv("MAILGUN_DOMAIN")
 SENTRY_DSN = os.getenv("SENTRY_DSN")
+ENV = os.getenv("ENV")
 
 TEMPLATE_FILE = "letter.j2"
 CHART_NAME = "views_chart"
 
 TIME_MARK = datetime.now() - timedelta(days=1)
 
-sentry_sdk.init(SENTRY_DSN)
+if ENV != "local":
+    sentry_sdk.init(SENTRY_DSN, environment=ENV)
 
 
 def collect_github_data(since: timedelta) -> dict:
