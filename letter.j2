@@ -1,8 +1,8 @@
 <p>
-⭐ Stars: {{ data.stars }}<br />
-💬 Open Issues: {{ data.open_issues }}<br />
+⭐ Stars: {{ data.stars }} {% if data.previous %}({{ data.previous.stars - data.stars }}){% endif %}<br />
+💬 Open Issues: {{ data.open_issues }} {% if data.previous %}({{ data.previous.open_issues - data.open_issues }}){% endif %}<br />
+📥 Downloads: {{ data.downloads }} {% if data.previous %}({{ data.previous.downloads - data.downloads }}){% endif %}<br />
 👀 Views: {{ data.traffic.yesterday.count }} ({{ data.traffic.yesterday.uniques }} uniques)<br />
-📥 Downloads: {{ data.downloads }}<br />
 </p>
 
 <h3>💬 Issues</h3>

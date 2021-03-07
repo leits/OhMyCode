@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-# In[]:
 import io
 import os
 from datetime import datetime, timedelta
@@ -19,6 +17,9 @@ from github import Github
 from dotenv import load_dotenv
 
 load_dotenv()
+
+from db import Repository, init_db_session
+
 
 GITHUB_API_TOKEN = os.getenv("GITHUB_API_TOKEN")
 MAILGUN_API_KEY = os.getenv("MAILGUN_API_KEY")
@@ -40,7 +41,6 @@ def collect_github_data(since: timedelta) -> dict:
         "since": since,
         "stars": repo.stargazers_count,
         "open_issues": repo.open_issues_count,
-        "forks": repo.forks_count,
         "downloads": 0,
         "issues": [],
         "pulls": [],
@@ -132,6 +132,17 @@ def send_email(html, chart):
 
 def main():
     data = collect_github_data(TIME_MARK)
+
+    today_stats = {
+        "stars": data["stars"],
+        "downloads": data["downloads"],
+        "open_issues": data["open_issues"],
+    }
+    session = init_db_session()
+    Repository.add_today_stats(session, "leits", "MeetingBar", today_stats)
+    stats = Repository.get_stats(session, "leits", "MeetingBar")
+
+    data["previous"] = stats.get(TIME_MARK.strftime("%Y-%m-%d"))
 
     chart = plot_views(data["traffic"]["views"])
 
