@@ -10,6 +10,7 @@ from email.mime.text import MIMEText
 import pandas
 import requests
 import jinja2
+import sentry_sdk
 import matplotlib.pyplot as plt
 
 from github import Github
@@ -24,11 +25,14 @@ from db import Repository, init_db_session
 GITHUB_API_TOKEN = os.getenv("GITHUB_API_TOKEN")
 MAILGUN_API_KEY = os.getenv("MAILGUN_API_KEY")
 MAILGUN_DOMAIN = os.getenv("MAILGUN_DOMAIN")
+SENTRY_DSN = os.getenv("SENTRY_DSN")
 
 TEMPLATE_FILE = "letter.j2"
 CHART_NAME = "views_chart"
 
 TIME_MARK = datetime.now() - timedelta(days=1)
+
+sentry_sdk.init(SENTRY_DSN)
 
 
 def collect_github_data(since: timedelta) -> dict:

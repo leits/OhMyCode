@@ -57,7 +57,7 @@ class Repository(Base):
 
     @classmethod
     def add_today_stats(cls, session: Session, owner: str, name: str, stats: dict):
-        today = "2021-03-06"  # date.today().strftime("%Y-%m-%d")
+        today = date.today().strftime("%Y-%m-%d")
         full_stats = cls.get_stats(session, owner, name)
         full_stats[today] = stats
         cls.create_or_update(session, owner, name, full_stats)
