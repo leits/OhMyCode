@@ -1,7 +1,7 @@
 from flask import Flask, _app_ctx_stack, jsonify
 from sqlalchemy.orm import scoped_session
 from db import Repository, init_db_session
-
+from constants import PORT
 app = Flask(__name__)
 
 app.session = scoped_session(init_db_session(), scopefunc=_app_ctx_stack.__ident_func__)
@@ -19,4 +19,4 @@ def remove_session(*args, **kwargs):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=80, debug=True)
+    app.run(host="0.0.0.0", port=PORT, debug=True)
