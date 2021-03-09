@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-import os
 from datetime import datetime, timedelta
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
@@ -15,7 +14,6 @@ import sentry_sdk
 from github import Github
 
 from dotenv import load_dotenv
-from sqlalchemy.orm import session
 
 load_dotenv()
 
