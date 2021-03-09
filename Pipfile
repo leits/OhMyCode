@@ -13,6 +13,7 @@ sqlalchemy = "*"
 sentry-sdk = "*"
 plotly = "*"
 flask = "*"
+psutil = "*"
 
 [dev-packages]
 
