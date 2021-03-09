@@ -32,7 +32,7 @@ TEMPLATE_FILE = "letter.mjml.j2"
 VIEWS_CHART_NAME = "views_chart"
 HEADER_CHART_NAME = "header_chart"
 
-TIME_MARK = datetime.now() - timedelta(days=7)
+TIME_MARK = datetime.now() - timedelta(days=1)
 
 if ENV != "local":
     sentry_sdk.init(SENTRY_DSN, environment=ENV)
