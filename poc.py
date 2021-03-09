@@ -1,37 +1,40 @@
 #!/usr/bin/env python
 # coding: utf-8
-import io
 import os
 from datetime import datetime, timedelta
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-import pandas
+import plotly.graph_objects as go
 import requests
+from requests.auth import HTTPBasicAuth
 import jinja2
 import sentry_sdk
-import matplotlib.pyplot as plt
 
 from github import Github
 
 from dotenv import load_dotenv
+from sqlalchemy.orm import session
 
 load_dotenv()
 
 from db import Repository, init_db_session
+from constants import (
+    GITHUB_API_TOKEN,
+    MAILGUN_API_KEY,
+    MAILGUN_DOMAIN,
+    SENTRY_DSN,
+    MJML_APP_ID,
+    MJML_SECRET_KEY,
+    ENV,
+)
 
+TEMPLATE_FILE = "letter.mjml.j2"
+VIEWS_CHART_NAME = "views_chart"
+HEADER_CHART_NAME = "header_chart"
 
-GITHUB_API_TOKEN = os.getenv("GITHUB_API_TOKEN")
-MAILGUN_API_KEY = os.getenv("MAILGUN_API_KEY")
-MAILGUN_DOMAIN = os.getenv("MAILGUN_DOMAIN")
-SENTRY_DSN = os.getenv("SENTRY_DSN")
-ENV = os.getenv("ENV")
-
-TEMPLATE_FILE = "letter.j2"
-CHART_NAME = "views_chart"
-
-TIME_MARK = datetime.now() - timedelta(days=1)
+TIME_MARK = datetime.now() - timedelta(days=7)
 
 if ENV != "local":
     sentry_sdk.init(SENTRY_DSN, environment=ENV)
@@ -39,6 +42,10 @@ if ENV != "local":
 
 def collect_github_data(since: timedelta) -> dict:
     g = Github(GITHUB_API_TOKEN)
+
+    rate_limit = g.get_rate_limit()
+    print(f"Rate limit: {rate_limit}")
+
     repo = g.get_repo("leits/MeetingBar")
 
     print("Connected to repo")
@@ -66,32 +73,91 @@ def collect_github_data(since: timedelta) -> dict:
 
     data["traffic"] = repo.get_views_traffic(per="day")
     data["traffic"]["yesterday"] = data["traffic"]["views"][-2]
+    data["traffic"]["two_days_ago"] = data["traffic"]["views"][-3]
 
     print("Collected repo info")
-
-    rate_limit = g.get_rate_limit()
-    print(f"Rate limit: {rate_limit}")
-
     return data
 
 
+def plot_header(data: dict) -> bytes:
+    fig = go.Figure()
+
+    mode = "number+delta" if data["previous"] else "number"
+
+    fig.add_trace(
+        go.Indicator(
+            title={"text": "Stars"},
+            mode=mode,
+            value=data["stars"],
+            domain={"x": [0, 0.25], "y": [0, 1]},
+            delta={"reference": data["previous"].get("start")},
+        )
+    )
+
+    fig.add_trace(
+        go.Indicator(
+            title={"text": "Downloads"},
+            mode=mode,
+            value=data["downloads"],
+            domain={"x": [0.25, 0.5], "y": [0, 1]},
+            delta={"reference": data["previous"].get("downloads")},
+        )
+    )
+
+    fig.add_trace(
+        go.Indicator(
+            title={"text": "Views"},
+            mode="number+delta",
+            value=data["traffic"]["yesterday"].count,
+            domain={"x": [0.5, 0.75], "y": [0, 1]},
+            delta={
+                "reference": data["traffic"]["two_days_ago"].count,
+                "relative": True,
+            },
+        )
+    )
+
+    fig.add_trace(
+        go.Indicator(
+            title={"text": "Uniques visitors"},
+            mode="number+delta",
+            value=data["traffic"]["yesterday"].uniques,
+            domain={"x": [0.75, 1], "y": [0, 1]},
+            delta={
+                "reference": data["traffic"]["two_days_ago"].uniques,
+                "relative": True,
+            },
+        )
+    )
+
+    fig.update_layout(width=1200, height=300)
+
+    fig.update_layout(margin=dict(l=5, r=5, t=5, b=5))
+
+    # fig.show()
+    return fig.to_image(format="png")
+
+
 def plot_views(views) -> bytes:
-    df = pandas.DataFrame(columns=["timestamp", "count", "uniques"])
+    x = []
+    y1 = []
+    y2 = []
 
-    for i, day in enumerate(views):
-        df.loc[i] = [day.timestamp, day.count, day.uniques]
+    for day in views:
+        x.append(day.timestamp)
+        y1.append(day.count)
+        y2.append(day.uniques)
 
-    df.plot(x="timestamp", y=["count", "uniques"], style=".-")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=x, y=y1, mode="lines+markers", name="count"))
+    fig.add_trace(go.Scatter(x=x, y=y2, mode="lines+markers", name="uniques"))
 
-    buf = io.BytesIO()
-    plt.savefig(buf, format="png", bbox_inches="tight")
-    buf.seek(0)
-    chart = buf.read()
-    buf.close()
+    fig.update_layout(margin=dict(l=5, r=5, t=5, b=5))
 
     print("Rendered views chart")
 
-    return chart
+    # fig.show()
+    return fig.to_image(format="png")
 
 
 def render_html(data: dict) -> str:
@@ -99,28 +165,27 @@ def render_html(data: dict) -> str:
     templateEnv = jinja2.Environment(loader=templateLoader)
 
     template = templateEnv.get_template(TEMPLATE_FILE)
-    html = template.render(data=data)
+    html = template.render(data=data, now=datetime.now())
 
     print("Rendered html")
 
     return html
 
 
-def send_email(html, chart):
-    now = datetime.now()
+def send_email(html: str, charts: dict):
     html_part = MIMEMultipart(_subtype="related")
-    html_part["Subject"] = f"Daily update of MeetingBar ({now.strftime('%d %b %Y')})"
+    html_part["Subject"] = f"Daily updates of MeetingBar"
     html_part["From"] = "leits.dev@gmail.com"
     html_part["To"] = "leits.dev@gmail.com"
 
     body = MIMEText(html, _subtype="html")
 
     html_part.attach(body)
-    img = MIMEImage(chart, "png")
-    img.add_header("Content-Id", f"<{CHART_NAME}>")
-    img.add_header("Content-Disposition", "inline", filename=CHART_NAME)
-
-    html_part.attach(img)
+    for name, chart in charts.items():
+        img = MIMEImage(chart, "png")
+        img.add_header("Content-Id", f"<{name}>")
+        img.add_header("Content-Disposition", "inline", filename=name)
+        html_part.attach(img)
 
     res = requests.post(
         f"https://api.mailgun.net/v3/{MAILGUN_DOMAIN}/messages.mime",
@@ -144,18 +209,30 @@ def main():
         "downloads": data["downloads"],
         "open_issues": data["open_issues"],
     }
-    session = init_db_session()
+    Session = init_db_session()
+    session = Session()
     Repository.add_today_stats(session, "leits", "MeetingBar", today_stats)
     stats = Repository.get_stats(session, "leits", "MeetingBar")
 
-    data["previous"] = stats.get(TIME_MARK.strftime("%Y-%m-%d"))
+    data["previous"] = stats.get(TIME_MARK.strftime("%Y-%m-%d"), {})
 
-    chart = plot_views(data["traffic"]["views"])
+    views_chart = plot_views(data["traffic"]["views"])
+    header_chart = plot_header(data)
 
-    data["views_image_src"] = f"cid:{CHART_NAME}"
+    data["views_image_src"] = f"cid:{VIEWS_CHART_NAME}"
+    data["header_image_src"] = f"cid:{HEADER_CHART_NAME}"
+
     html = render_html(data)
+    charts = {VIEWS_CHART_NAME: views_chart, HEADER_CHART_NAME: header_chart}
 
-    send_email(html, chart)
+    resp = requests.post(
+        "https://api.mjml.io/v1/render",
+        json={"mjml": html},
+        auth=HTTPBasicAuth(MJML_APP_ID, MJML_SECRET_KEY),
+    )
+    resp_json = resp.json()
+
+    send_email(resp_json["html"], charts)
 
 
 if __name__ == "__main__":

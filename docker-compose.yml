@@ -1,0 +1,18 @@
+version: "3.4"
+services:
+  ohmycode:
+    build:
+      context: '.'
+      dockerfile: Dockerfile
+    ports:
+      - 8080:80
+    depends_on:
+      - db
+
+  db:
+    image: postgres:13
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: secretsecret
+    ports:
+      - "5432"

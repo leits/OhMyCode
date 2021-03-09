@@ -1,14 +1,11 @@
-import os
 from datetime import date
 
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, UniqueConstraint
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import JSONB
 
-DATABASE_URL = os.environ["DATABASE_URL"]
-
-# docker run -d --name dev-postgres -e POSTGRES_PASSWORD=pospass -p 5432:5432 postgres
+from constants import DATABASE_URL
 
 Base = declarative_base()
 
@@ -18,7 +15,8 @@ def init_db_session() -> Session:
     print("Connected to DB")
     Base.metadata.create_all(engine)
     print("Created scheme")
-    return sessionmaker(bind=engine)()
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    return SessionLocal
 
 
 class Repository(Base):
@@ -27,6 +25,7 @@ class Repository(Base):
     owner = Column(String)
     name = Column(String)
     stats = Column(JSONB, default={})
+    __table_args__ = (UniqueConstraint("owner", "name", name="_owner_name_uq"),)
 
     @classmethod
     def get(cls, session: Session, owner: str, name: str):

@@ -5,16 +5,14 @@ name = "pypi"
 
 [packages]
 pygithub = "*"
-ipykernel = "*"
-matplotlib = "*"
 requests = "*"
-aiohttp = "*"
 jinja2 = "*"
-pandas = "*"
 python-dotenv = "*"
 psycopg2-binary = "*"
 sqlalchemy = "*"
 sentry-sdk = "*"
+plotly = "*"
+flask = "*"
 
 [dev-packages]
 
