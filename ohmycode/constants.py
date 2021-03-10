@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 
 ENV = os.getenv("ENV", "local")
 
@@ -15,3 +16,9 @@ SENTRY_DSN = os.getenv("SENTRY_DSN")
 MJML_APP_ID = os.getenv("MJML_APP_ID")
 MJML_SECRET_KEY = os.getenv("MJML_SECRET_KEY")
 PORT = os.environ.get('PORT', 5000)
+
+TEMPLATE_FILE = "./ohmycode/letter.mjml.j2"
+VIEWS_CHART_NAME = "views_chart"
+HEADER_CHART_NAME = "header_chart"
+
+TIME_MARK = datetime.now() - timedelta(days=1)

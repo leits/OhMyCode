@@ -45,7 +45,7 @@ class Repository(Base):
             return {}
 
     @classmethod
-    def create_or_update(cls, session: Session, owner: str, name: str, stats: dict):
+    def create_or_update(cls, session: Session, owner: str, name: str, stats: dict = {}):
         repo = cls.get(session, owner, name)
         if repo:
             repo.stats = stats

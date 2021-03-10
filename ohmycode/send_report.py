@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-from datetime import datetime, timedelta
+from datetime import datetime
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -11,70 +11,24 @@ from requests.auth import HTTPBasicAuth
 import jinja2
 import sentry_sdk
 
-from github import Github
-
-from dotenv import load_dotenv
-
-load_dotenv()
-
 from db import Repository, init_db_session
+from gh import collect_github_data
 from constants import (
-    GITHUB_API_TOKEN,
     MAILGUN_API_KEY,
     MAILGUN_DOMAIN,
     SENTRY_DSN,
     MJML_APP_ID,
     MJML_SECRET_KEY,
+    TEMPLATE_FILE,
+    VIEWS_CHART_NAME,
+    HEADER_CHART_NAME,
+    TIME_MARK,
     ENV,
 )
-
-TEMPLATE_FILE = "./app/letter.mjml.j2"
-VIEWS_CHART_NAME = "views_chart"
-HEADER_CHART_NAME = "header_chart"
-
-TIME_MARK = datetime.now() - timedelta(days=1)
 
 if ENV != "local":
     sentry_sdk.init(SENTRY_DSN, environment=ENV)
 
-
-def collect_github_data(since: timedelta) -> dict:
-    g = Github(GITHUB_API_TOKEN)
-
-    rate_limit = g.get_rate_limit()
-    print(f"Rate limit: {rate_limit}")
-
-    repo = g.get_repo("leits/MeetingBar")
-
-    print("Connected to repo")
-
-    data = {
-        "since": since,
-        "stars": repo.stargazers_count,
-        "open_issues": repo.open_issues_count,
-        "downloads": 0,
-        "issues": [],
-        "pulls": [],
-    }
-
-    for issue in repo.get_issues(since=since, state="all"):
-        if issue.pull_request:
-            data["pulls"].append(issue)
-        else:
-            data["issues"].append(issue)
-
-    for release in repo.get_releases():
-        for a in release.get_assets():
-            data["downloads"] += a.download_count
-
-    data["referrers"] = repo.get_top_referrers()
-
-    data["traffic"] = repo.get_views_traffic(per="day")
-    data["traffic"]["yesterday"] = data["traffic"]["views"][-2]
-    data["traffic"]["two_days_ago"] = data["traffic"]["views"][-3]
-
-    print("Collected repo info")
-    return data
 
 
 def plot_header(data: dict) -> bytes:
@@ -136,7 +90,7 @@ def plot_header(data: dict) -> bytes:
     return fig.to_image(format="png")
 
 
-def plot_views(views) -> bytes:
+def plot_views(views: list) -> bytes:
     x = []
     y1 = []
     y2 = []
@@ -151,6 +105,8 @@ def plot_views(views) -> bytes:
     fig.add_trace(go.Scatter(x=x, y=y2, mode="lines+markers", name="uniques"))
 
     fig.update_layout(margin=dict(l=5, r=5, t=5, b=5))
+    fig.update_layout(height=300)
+
 
     print("Rendered views chart")
 
@@ -158,16 +114,15 @@ def plot_views(views) -> bytes:
     return fig.to_image(format="png")
 
 
-def render_html(data: dict) -> str:
+def render_mjml(data: dict) -> str:
     templateLoader = jinja2.FileSystemLoader(searchpath="./")
     templateEnv = jinja2.Environment(loader=templateLoader)
 
     template = templateEnv.get_template(TEMPLATE_FILE)
-    html = template.render(data=data, now=datetime.now())
+    mjml = template.render(data=data, now=datetime.now())
 
-    print("Rendered html")
-
-    return html
+    print("Rendered mjml")
+    return mjml
 
 
 def send_email(html: str, charts: dict):
@@ -205,7 +160,6 @@ def main():
     today_stats = {
         "stars": data["stars"],
         "downloads": data["downloads"],
-        "open_issues": data["open_issues"],
     }
     Session = init_db_session()
     session = Session()
@@ -220,18 +174,19 @@ def main():
     data["views_image_src"] = f"cid:{VIEWS_CHART_NAME}"
     data["header_image_src"] = f"cid:{HEADER_CHART_NAME}"
 
-    html = render_html(data)
+    mjml = render_mjml(data)
     charts = {VIEWS_CHART_NAME: views_chart, HEADER_CHART_NAME: header_chart}
 
     resp = requests.post(
         "https://api.mjml.io/v1/render",
-        json={"mjml": html},
+        json={"mjml": mjml},
         auth=HTTPBasicAuth(MJML_APP_ID, MJML_SECRET_KEY),
     )
+
     resp_json = resp.json()
+    html = resp_json["html"]
 
-    send_email(resp_json["html"], charts)
-
+    send_email(html, charts)
 
 if __name__ == "__main__":
     main()
