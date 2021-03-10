@@ -1,1 +1,1 @@
-web: python3 ./app/app.py
+web: python3 ./ohmycode/app.py
