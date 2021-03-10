@@ -184,6 +184,7 @@ def main():
     )
 
     resp_json = resp.json()
+    print(resp_json)
     html = resp_json["html"]
 
     send_email(html, charts)
