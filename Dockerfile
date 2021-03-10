@@ -1,11 +1,18 @@
 FROM python:latest
 EXPOSE 5000
 
-COPY . .
-
 RUN pip3 install pipenv
+
+COPY Pipfile .
+COPY Pipfile.lock .
+
 RUN pipenv lock -r > requirements.txt
 RUN pip3 install -r requirements.txt
 
+RUN rm requirements.txt
+RUN rm Pipfile
+RUN rm Pipfile.lock
 
-CMD ["python3", "./app/app.py" ]
+COPY . /app
+
+CMD ["python3", "/app/ohmycode/app.py" ]

@@ -28,7 +28,7 @@ from constants import (
     ENV,
 )
 
-TEMPLATE_FILE = "letter.mjml.j2"
+TEMPLATE_FILE = "./app/letter.mjml.j2"
 VIEWS_CHART_NAME = "views_chart"
 HEADER_CHART_NAME = "header_chart"
 
