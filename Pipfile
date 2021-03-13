@@ -15,6 +15,7 @@ fastapi = "*"
 uvicorn = {extras = ["standard"], version = "*"}
 tortoise-orm = "*"
 httpx = "*"
+asyncpg = "*"
 
 [dev-packages]
 
