@@ -81,7 +81,7 @@ async def send_report(repo_id):
         "stars": data["stars"],
         "downloads": data["downloads"],
     }
-    repo.stats.update(today_stats)
+    repo.stats[now.strftime("%Y-%m-%d")] = today_stats
     repo.next_report_at += timedelta(days=1)
     repo.reported_at = now
     await repo.save()
