@@ -1,1 +1,1 @@
-web: uvicorn app:app
+web: pipenv run uvicorn app:app
