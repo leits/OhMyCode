@@ -1,1 +1,1 @@
-web: python3 ./ohmycode/app.py
+web: uvicorn app:app

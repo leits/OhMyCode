@@ -5,15 +5,16 @@ name = "pypi"
 
 [packages]
 pygithub = "*"
-requests = "*"
 jinja2 = "*"
 python-dotenv = "*"
-psycopg2-binary = "*"
-sqlalchemy = "*"
 sentry-sdk = "*"
 plotly = "*"
-flask = "*"
 kaleido = "*"
+isort = "*"
+fastapi = "*"
+uvicorn = {extras = ["standard"], version = "*"}
+tortoise-orm = "*"
+httpx = "*"
 
 [dev-packages]
 

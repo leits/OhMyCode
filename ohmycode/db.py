@@ -1,63 +1,36 @@
-from datetime import date
-
-from sqlalchemy import create_engine, Column, Integer, String, UniqueConstraint
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.dialects.postgresql import JSONB
-
 from constants import DATABASE_URL
-
-Base = declarative_base()
-
-
-def init_db_session() -> Session:
-    engine = create_engine(DATABASE_URL)
-    print("Connected to DB")
-    Base.metadata.create_all(engine)
-    print("Created scheme")
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    return SessionLocal
+from tortoise import Tortoise, fields
+from tortoise.contrib.pydantic import pydantic_model_creator
+from tortoise.models import Model
 
 
-class Repository(Base):
-    __tablename__ = "repository"
-    id = Column(Integer, primary_key=True)
-    owner = Column(String)
-    name = Column(String)
-    stats = Column(JSONB, default={})
-    __table_args__ = (UniqueConstraint("owner", "name", name="_owner_name_uq"),)
+class Repository(Model):
+    id = fields.TextField(pk=True)
 
-    @classmethod
-    def get(cls, session: Session, owner: str, name: str):
-        return (
-            session.query(cls)
-            .filter(cls.owner == owner, cls.name == name)
-            .one_or_none()
-        )
+    created_at = fields.DatetimeField(auto_now_add=True)
+    modified_at = fields.DatetimeField(auto_now=True)
 
-    @classmethod
-    def get_stats(cls, session: Session, owner: str, name: str) -> dict:
-        repo = cls.get(session, owner, name)
-        print("Got full stats")
-        if repo:
-            return repo.stats
-        else:
-            return {}
+    reported_at = fields.DatetimeField(null=True)
+    next_report_at = fields.DatetimeField(null=True)
 
-    @classmethod
-    def create_or_update(cls, session: Session, owner: str, name: str, stats: dict = {}):
-        repo = cls.get(session, owner, name)
-        if repo:
-            repo.stats = stats
-        else:
-            repo = cls(owner=owner, name=name, stats=stats)
-            session.add(repo)
-        session.commit()
+    owner = fields.TextField()
+    name = fields.TextField()
+    stats = fields.JSONField(default={})
 
-    @classmethod
-    def add_today_stats(cls, session: Session, owner: str, name: str, stats: dict):
-        today = date.today().strftime("%Y-%m-%d")
-        full_stats = cls.get_stats(session, owner, name)
-        full_stats[today] = stats
-        cls.create_or_update(session, owner, name, full_stats)
-        print("Added today stats")
+    class Meta:
+        table = "repository"
+        unique_together = ("owner", "name")
+
+    def __str__(self):
+        return f"Repo: {self.owner}/{self.name}"
+
+
+Repostitory_Pydantic = pydantic_model_creator(Repository, name="Repository")
+RepostitoryIn_Pydantic = pydantic_model_creator(
+    Repository, name="RepositoryIn", exclude_readonly=True, exclude=["reported_at"]
+)
+
+
+async def init_db():
+    await Tortoise.init(db_url=DATABASE_URL, modules={"models": ["__main__"]})
+    await Tortoise.generate_schemas()

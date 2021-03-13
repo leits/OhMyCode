@@ -65,6 +65,13 @@
     </mj-section>
 
     <mj-section background-color="#fafafa">
+      <mj-column>
+        <mj-text font-style="italic" font-size="20px" font-family="Helvetica Neue" color="#626262">Views</mj-text>
+        <mj-image padding=0 src="{{ data.views_image_src }}" />
+      </mj-column>
+    </mj-section>
+
+    <mj-section>
       <mj-column width="500px">
         <mj-text font-style="italic" font-size="20px" font-family="Helvetica Neue" color="#626262">Referrers</mj-text>
         <mj-table>
@@ -81,13 +88,6 @@
             </tr>
           {% endfor %}
         </mj-table>
-      </mj-column>
-    </mj-section>
-
-    <mj-section>
-      <mj-column>
-        <mj-text font-style="italic" font-size="20px" font-family="Helvetica Neue" color="#626262">Views</mj-text>
-        <mj-image padding=0 src="{{ data.views_image_src }}" />
       </mj-column>
     </mj-section>
 

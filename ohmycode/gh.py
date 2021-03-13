@@ -1,14 +1,14 @@
+from constants import GITHUB_API_TOKEN
 from github import Github
 
-from constants import GITHUB_API_TOKEN
 
-def collect_github_data(since) -> dict:
+def collect_github_data(since, owner, name) -> dict:
     g = Github(GITHUB_API_TOKEN)
 
     rate_limit = g.get_rate_limit()
     print(f"Rate limit: {rate_limit}")
 
-    repo = g.get_repo("leits/MeetingBar")
+    repo = g.get_repo(f"{owner}/{name}")
 
     print("Connected to repo")
 
