@@ -104,7 +104,6 @@ async def send_report(repo_id):
             auth=(MJML_APP_ID, MJML_SECRET_KEY),
         )
         resp_json = resp.json()
-        print(resp_json)
         html = resp_json["html"]
 
     await send_email(html, charts)
@@ -112,7 +111,7 @@ async def send_report(repo_id):
 
 async def main():
     await init_db()
-    repos = await Repository.filter(next_report_at__lt=datetime.now()).all()
+    repos = await Repository.all()
     if not repos:
         print("No repos to update")
 

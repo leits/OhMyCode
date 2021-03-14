@@ -4,6 +4,7 @@ from typing import List
 from constants import DATABASE_URL
 from db import Repository, Repostitory_Pydantic, RepostitoryIn_Pydantic
 from fastapi import FastAPI, HTTPException
+from fastapi_utils.tasks import repeat_every
 from pydantic import BaseModel
 from send_report import send_report
 from tortoise.contrib.fastapi import HTTPNotFoundError, register_tortoise
@@ -68,6 +69,16 @@ async def delete_repo(repo_id: str):
     if not deleted_count:
         raise HTTPException(status_code=404, detail=f"repo {repo_id} not found")
     return Status(message=f"Deleted repo {repo_id}")
+
+@app.on_event("startup")
+@repeat_every(seconds=60*5, wait_first=True)
+async def send_reports() -> None:
+    print("Check repos to send report")
+    repos = await Repository.filter(next_report_at__lt=datetime.now()).all()
+    if not repos:
+        print("No repos to update")
+    tasks = [send_report(repo.id) for repo in repos]
+    await asyncio.gather(*tasks)
 
 
 register_tortoise(
