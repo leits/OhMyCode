@@ -83,7 +83,7 @@ async def delete_repo(repo_id: str):
     return Status(message=f"Deleted repo {repo_id}")
 
 
-async def send_reports():
+async def save_all_yesterday_stats():
     logger.info("Check repos to send report")
     repos = await Repository.filter(next_report_at__lt=datetime.now()).all()
     if not repos:
@@ -92,7 +92,7 @@ async def send_reports():
         await save_yesterday_stats(repo.id)
 
 
-async def collect_data():
+async def send_reports():
     logger.info("Check repos to send report")
     repos = await Repository.filter(next_report_at__lt=datetime.now()).all()
     if not repos:
@@ -105,7 +105,7 @@ async def collect_data():
 async def setup_scheduler():
     Schedule.start()
     Schedule.add_job(send_reports, trigger="interval", seconds=60 * 10)
-    Schedule.add_job(send_reports, trigger="cron", hour="00", minute="00")
+    Schedule.add_job(save_all_yesterday_stats, trigger="cron", hour="00", minute="00")
 
 
 @app.on_event("shutdown")
