@@ -6,6 +6,7 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+from loguru import logger
 import httpx
 import jinja2
 import sentry_sdk
@@ -35,7 +36,7 @@ def render_mjml(data: dict) -> str:
     template = templateEnv.get_template(TEMPLATE_FILE)
     mjml = template.render(data=data, now=datetime.now())
 
-    print("Rendered mjml")
+    logger.info("Rendered mjml")
     return mjml
 
 
@@ -65,8 +66,8 @@ async def send_email(html: str, charts: dict):
             files={"message": html_part.as_string()},
             auth=("api", MAILGUN_API_KEY),
         )
-        print("Sent email")
-        print(resp.text)
+        logger.info("Sent email")
+        logger.info(resp.text)
 
 
 async def send_report(repo_id):
@@ -113,7 +114,7 @@ async def main():
     await init_db()
     repos = await Repository.all()
     if not repos:
-        print("No repos to update")
+        logger.info("No repos to update")
 
     tasks = []
     for repo in repos:

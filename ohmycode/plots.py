@@ -1,3 +1,5 @@
+from loguru import logger
+
 import plotly.graph_objects as go
 
 
@@ -56,7 +58,7 @@ def plot_header(data: dict) -> bytes:
 
     fig.update_layout(margin=dict(l=5, r=5, t=5, b=5))
 
-    print("Rendered header chart")
+    logger.info("Rendered header chart")
     # fig.show()
     return fig.to_image(format="png")
 
@@ -78,6 +80,6 @@ def plot_views(views: list) -> bytes:
     fig.update_layout(margin=dict(l=5, r=5, t=5, b=5))
     fig.update_layout(height=300)
 
-    print("Rendered views chart")
+    logger.info("Rendered views chart")
     # fig.show()
     return fig.to_image(format="png")

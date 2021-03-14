@@ -9,6 +9,8 @@ from pydantic import BaseModel
 from send_report import send_report
 from tortoise.contrib.fastapi import HTTPNotFoundError, register_tortoise
 
+from loguru import logger
+
 app = FastAPI()
 
 
@@ -82,9 +84,9 @@ async def delete_repo(repo_id: str):
 @app.on_event("startup")
 @repeat_every(seconds=60*3)
 async def send_reports() -> None:
-    print("Check repos to send report")
+    logger.info("Check repos to send report")
     repos = await Repository.filter(next_report_at__lt=datetime.now()).all()
     if not repos:
-        print("No repos to update")
+        logger.info("No repos to update")
     for repo in repos:
         await send_report(repo.id)

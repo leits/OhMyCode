@@ -1,16 +1,17 @@
 from constants import GITHUB_API_TOKEN
 from github import Github
+from loguru import logger
 
 
 def collect_github_data(since, owner, name) -> dict:
     g = Github(GITHUB_API_TOKEN)
 
     rate_limit = g.get_rate_limit()
-    print(f"Rate limit: {rate_limit}")
+    logger.info(f"Rate limit: {rate_limit}")
 
     repo = g.get_repo(f"{owner}/{name}")
 
-    print("Connected to repo")
+    logger.info("Connected to repo")
 
     data = {
         "since": since,
@@ -36,5 +37,5 @@ def collect_github_data(since, owner, name) -> dict:
     data["traffic"]["yesterday"] = data["traffic"]["views"][-2]
     data["traffic"]["two_days_ago"] = data["traffic"]["views"][-3]
 
-    print("Collected repo info")
+    logger.info("Collected repo info")
     return data

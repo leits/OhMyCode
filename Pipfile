@@ -17,6 +17,7 @@ tortoise-orm = "*"
 httpx = "*"
 asyncpg = "*"
 fastapi-utils = "*"
+loguru = "*"
 
 [dev-packages]
 
