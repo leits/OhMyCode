@@ -38,4 +38,5 @@ def collect_github_data(since, owner, name) -> dict:
     data["traffic"]["two_days_ago"] = data["traffic"]["views"][-3]
 
     logger.info("Collected repo info")
+    logger.info(data)
     return data
