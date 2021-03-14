@@ -86,5 +86,5 @@ async def send_reports() -> None:
     repos = await Repository.filter(next_report_at__lt=datetime.now()).all()
     if not repos:
         print("No repos to update")
-    tasks = [send_report(repo.id) for repo in repos]
-    await asyncio.gather(*tasks)
+    for repo in repos:
+        await send_report(repo.id)
