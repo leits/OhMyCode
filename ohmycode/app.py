@@ -1,16 +1,18 @@
 from datetime import datetime, timedelta
 from typing import List
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from constants import DATABASE_URL
 from db import Repository, Repostitory_Pydantic, RepostitoryIn_Pydantic
 from fastapi import FastAPI, HTTPException
-from fastapi_utils.tasks import repeat_every
 from loguru import logger
 from pydantic import BaseModel
-from send_report import send_report
+from send_report import save_yesterday_stats, send_report
 from tortoise.contrib.fastapi import HTTPNotFoundError, register_tortoise
 
 app = FastAPI()
+
+Schedule = AsyncIOScheduler()
 
 
 register_tortoise(
@@ -80,12 +82,32 @@ async def delete_repo(repo_id: str):
         raise HTTPException(status_code=404, detail=f"repo {repo_id} not found")
     return Status(message=f"Deleted repo {repo_id}")
 
-@app.on_event("startup")
-@repeat_every(seconds=60 * 15, logger=logger)
-async def send_reports() -> None:
+
+async def send_reports():
+    logger.info("Check repos to send report")
+    repos = await Repository.filter(next_report_at__lt=datetime.now()).all()
+    if not repos:
+        logger.info("No repos to update")
+    for repo in repos:
+        await save_yesterday_stats(repo.id)
+
+
+async def collect_data():
     logger.info("Check repos to send report")
     repos = await Repository.filter(next_report_at__lt=datetime.now()).all()
     if not repos:
         logger.info("No repos to update")
     for repo in repos:
         await send_report(repo.id)
+
+
+@app.on_event("startup")
+async def setup_scheduler():
+    Schedule.start()
+    Schedule.add_job(send_reports, trigger="interval", seconds=60 * 10)
+    Schedule.add_job(send_reports, trigger="cron", hour="00", minute="00")
+
+
+@app.on_event("shutdown")
+async def stop_scheduler():
+    Schedule.shutdown()

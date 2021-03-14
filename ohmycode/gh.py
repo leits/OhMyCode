@@ -1,23 +1,34 @@
 import pprint
 
 from constants import GITHUB_API_TOKEN
-from github import Github
+from github import Github, Repository
 from loguru import logger
 
 
-def collect_github_data(since, owner, name) -> dict:
+def get_repo(owner, name):
     g = Github(GITHUB_API_TOKEN)
 
     rate_limit = g.get_rate_limit()
     logger.info(f"Rate limit: {rate_limit}")
 
     repo = g.get_repo(f"{owner}/{name}")
-
     logger.info("Connected to repo")
+    return repo
+
+
+def get_repo_downloads(repo: Repository) -> int:
+    downloads = 0
+    for release in repo.get_releases():
+        for a in release.get_assets():
+            downloads += a.download_count
+    return downloads
+
+
+def collect_github_data(since, owner, name) -> dict:
+    repo = get_repo(owner, name)
 
     data = {
         "since": since,
-        "stars": repo.stargazers_count,
         "downloads": 0,
         "issues": [],
         "pulls": [],
@@ -28,10 +39,6 @@ def collect_github_data(since, owner, name) -> dict:
             data["pulls"].append(issue)
         else:
             data["issues"].append(issue)
-
-    for release in repo.get_releases():
-        for a in release.get_assets():
-            data["downloads"] += a.download_count
 
     data["referrers"] = repo.get_top_referrers()
 

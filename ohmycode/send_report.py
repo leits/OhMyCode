@@ -21,7 +21,7 @@ from constants import (
     VIEWS_CHART_NAME,
 )
 from db import Repository, init_db
-from gh import collect_github_data
+from gh import collect_github_data, get_repo, get_repo_downloads
 from loguru import logger
 from plots import plot_header, plot_views
 
@@ -70,24 +70,32 @@ async def send_email(html: str, charts: dict):
         logger.info(resp.text)
 
 
+async def save_yesterday_stats(repo_id):
+    logger.info(f"Saving yesterdays stats for {repo_id}")
+    repo = await Repository.get(id=repo_id)
+    gh_repo = get_repo(repo.owner, repo.name)
+
+    yesterday_stats = {
+        "stars": gh_repo.stargazers_count,
+        "downloads": get_repo_downloads(gh_repo),
+    }
+    yesterday = datetime.now() - timedelta(days=1)
+    repo.stats[yesterday.strftime("%Y-%m-%d")] = yesterday_stats
+    logger.info(f"Saved yesterdays stats for {repo_id}: {yesterday_stats}")
+    await repo.save()
+
+
 async def send_report(repo_id):
     repo = await Repository.get(id=repo_id)
 
-    now = datetime.now()
-    since = now - timedelta(days=1)
+    today = datetime.now().replace(hour=0, minute=0)
+    yesterday = today - timedelta(days=1)
+    two_days_ago = today - timedelta(days=2)
 
-    data = collect_github_data(since, repo.owner, repo.name)
-
-    today_stats = {
-        "stars": data["stars"],
-        "downloads": data["downloads"],
-    }
-    repo.stats[now.strftime("%Y-%m-%d")] = today_stats
-    repo.next_report_at += timedelta(days=1)
-    repo.reported_at = now
-    await repo.save()
-
-    data["previous"] = repo.stats.get(since.strftime("%Y-%m-%d"), {})
+    data = collect_github_data(yesterday, repo.owner, repo.name)
+    data["yesterday"] = repo.stats[yesterday.strftime("%Y-%m-%d")]
+    data["two_days_ago"] = repo.stats.get(two_days_ago.strftime("%Y-%m-%d"), {})
+    logger.info(f"Got yesterdays stats for {repo_id}: {data['yesterday']}")
 
     views_chart = plot_views(data["traffic"]["views"])
     header_chart = plot_header(data)
@@ -109,6 +117,10 @@ async def send_report(repo_id):
 
     await send_email(html, charts)
 
+    repo.next_report_at += timedelta(days=1)
+    repo.reported_at = datetime.now()
+    await repo.save()
+
 
 async def main():
     await init_db()
@@ -116,11 +128,9 @@ async def main():
     if not repos:
         logger.info("No repos to update")
 
-    tasks = []
     for repo in repos:
-        tasks.append(send_report(repo.id))
-
-    await asyncio.gather(*tasks)
+        await save_yesterday_stats(repo.id)
+        await send_report(repo.id)
 
 
 if __name__ == "__main__":

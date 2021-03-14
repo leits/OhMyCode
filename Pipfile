@@ -9,15 +9,15 @@ jinja2 = "*"
 python-dotenv = "*"
 sentry-sdk = "*"
 plotly = "*"
-kaleido = "*"
+kaleido = "0.2.1"
 isort = "*"
 fastapi = "*"
 uvicorn = {extras = ["standard"], version = "*"}
 tortoise-orm = "*"
 httpx = "*"
 asyncpg = "*"
-fastapi-utils = "*"
 loguru = "*"
+apscheduler = "*"
 
 [dev-packages]
 

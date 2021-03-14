@@ -5,15 +5,15 @@ from loguru import logger
 def plot_header(data: dict) -> bytes:
     fig = go.Figure()
 
-    mode = "number+delta" if data["previous"] else "number"
+    mode = "number+delta" if data["two_days_ago"] else "number"
 
     fig.add_trace(
         go.Indicator(
             title={"text": "Stars"},
             mode=mode,
-            value=data["stars"],
+            value=data["yesterday"]["stars"],
             domain={"x": [0, 0.25], "y": [0, 1]},
-            delta={"reference": data["previous"].get("stars")},
+            delta={"reference": data["two_days_ago"].get("stars")},
         )
     )
 
@@ -21,9 +21,9 @@ def plot_header(data: dict) -> bytes:
         go.Indicator(
             title={"text": "Downloads"},
             mode=mode,
-            value=data["downloads"],
+            value=data["yesterday"]["downloads"],
             domain={"x": [0.25, 0.5], "y": [0, 1]},
-            delta={"reference": data["previous"].get("downloads")},
+            delta={"reference": data["two_days_ago"].get("downloads")},
         )
     )
 
