@@ -1,6 +1,5 @@
-from loguru import logger
-
 import plotly.graph_objects as go
+from loguru import logger
 
 
 def plot_header(data: dict) -> bytes:

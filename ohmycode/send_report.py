@@ -6,7 +6,6 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from loguru import logger
 import httpx
 import jinja2
 import sentry_sdk
@@ -23,6 +22,7 @@ from constants import (
 )
 from db import Repository, init_db
 from gh import collect_github_data
+from loguru import logger
 from plots import plot_header, plot_views
 
 if ENV != "local":

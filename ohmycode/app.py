@@ -5,11 +5,10 @@ from constants import DATABASE_URL
 from db import Repository, Repostitory_Pydantic, RepostitoryIn_Pydantic
 from fastapi import FastAPI, HTTPException
 from fastapi_utils.tasks import repeat_every
+from loguru import logger
 from pydantic import BaseModel
 from send_report import send_report
 from tortoise.contrib.fastapi import HTTPNotFoundError, register_tortoise
-
-from loguru import logger
 
 app = FastAPI()
 
@@ -82,7 +81,7 @@ async def delete_repo(repo_id: str):
     return Status(message=f"Deleted repo {repo_id}")
 
 @app.on_event("startup")
-@repeat_every(seconds=60*3)
+@repeat_every(seconds=60 * 15, logger=logger)
 async def send_reports() -> None:
     logger.info("Check repos to send report")
     repos = await Repository.filter(next_report_at__lt=datetime.now()).all()
