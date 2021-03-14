@@ -12,6 +12,15 @@ from tortoise.contrib.fastapi import HTTPNotFoundError, register_tortoise
 app = FastAPI()
 
 
+register_tortoise(
+    app,
+    db_url=DATABASE_URL,
+    modules={"models": ["db"]},
+    generate_schemas=True,
+    add_exception_handlers=True,
+)
+
+
 class Status(BaseModel):
     message: str
 
@@ -71,7 +80,7 @@ async def delete_repo(repo_id: str):
     return Status(message=f"Deleted repo {repo_id}")
 
 @app.on_event("startup")
-@repeat_every(seconds=60*5, wait_first=True)
+@repeat_every(seconds=60*3, wait_first=True)
 async def send_reports() -> None:
     print("Check repos to send report")
     repos = await Repository.filter(next_report_at__lt=datetime.now()).all()
@@ -79,12 +88,3 @@ async def send_reports() -> None:
         print("No repos to update")
     tasks = [send_report(repo.id) for repo in repos]
     await asyncio.gather(*tasks)
-
-
-register_tortoise(
-    app,
-    db_url=DATABASE_URL,
-    modules={"models": ["db"]},
-    generate_schemas=True,
-    add_exception_handlers=True,
-)
