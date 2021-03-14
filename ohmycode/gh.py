@@ -1,3 +1,5 @@
+import pprint
+
 from constants import GITHUB_API_TOKEN
 from github import Github
 from loguru import logger
@@ -38,5 +40,5 @@ def collect_github_data(since, owner, name) -> dict:
     data["traffic"]["two_days_ago"] = data["traffic"]["views"][-3]
 
     logger.info("Collected repo info")
-    logger.info(data)
+    logger.info(pprint.pformat(data, indent=2))
     return data
