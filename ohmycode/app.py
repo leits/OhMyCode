@@ -80,7 +80,7 @@ async def delete_repo(repo_id: str):
     return Status(message=f"Deleted repo {repo_id}")
 
 @app.on_event("startup")
-@repeat_every(seconds=60*3, wait_first=True)
+@repeat_every(seconds=60*3)
 async def send_reports() -> None:
     print("Check repos to send report")
     repos = await Repository.filter(next_report_at__lt=datetime.now()).all()
