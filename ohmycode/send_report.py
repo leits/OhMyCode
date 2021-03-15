@@ -41,9 +41,9 @@ async def render_mjml(data: dict) -> str:
     return mjml
 
 
-async def send_email(html: str, charts: dict):
+async def send_email(html: str, name: str, charts: dict):
     html_part = MIMEMultipart(_subtype="related")
-    html_part["Subject"] = f"Daily updates of MeetingBar"
+    html_part["Subject"] = f"Daily updates of {name}"
     html_part["From"] = "leits.dev@gmail.com"
     html_part["To"] = "leits.dev@gmail.com"
 
@@ -113,7 +113,7 @@ async def send_report(repo_id):
         resp_json = resp.json()
         html = resp_json["html"]
 
-    await send_email(html, charts)
+    await send_email(html, repo.name, charts)
 
     repo.next_report_at += timedelta(days=1)
     repo.reported_at = datetime.now()
