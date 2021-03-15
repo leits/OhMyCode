@@ -84,11 +84,12 @@ async def delete_repo(repo_id: str):
 
 
 async def save_all_yesterday_stats():
-    logger.info("Check repos to send report")
+    logger.info("Check repos to save stats")
     repos = await Repository.filter(next_report_at__lt=datetime.now()).all()
     if not repos:
-        logger.info("No repos to update")
+        logger.info("No repos to save stats")
     for repo in repos:
+        logger.info(f"Find repo {repo.id} to save stats")
         await save_yesterday_stats(repo.id)
 
 
@@ -98,14 +99,15 @@ async def send_reports():
     if not repos:
         logger.info("No repos to update")
     for repo in repos:
+        logger.info(f"Find repo {repo.id} to update")
         await send_report(repo.id)
 
 
 @app.on_event("startup")
 async def setup_scheduler():
     Schedule.start()
-    Schedule.add_job(send_reports, trigger="interval", seconds=60 * 10)
-    Schedule.add_job(save_all_yesterday_stats, trigger="cron", hour="00", minute="00")
+    Schedule.add_job(send_reports, trigger="interval", seconds=60 * 10, id="send_reports")
+    Schedule.add_job(save_all_yesterday_stats, trigger="cron", hour="00", minute="00", id="save_all_yesterday_stats")
 
 
 @app.on_event("shutdown")
