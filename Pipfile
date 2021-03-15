@@ -17,7 +17,6 @@ tortoise-orm = "*"
 httpx = "*"
 asyncpg = "*"
 loguru = "*"
-apscheduler = "*"
 
 [dev-packages]
 
