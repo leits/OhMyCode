@@ -12,7 +12,7 @@ from tortoise.contrib.fastapi import HTTPNotFoundError, register_tortoise
 
 app = FastAPI()
 
-Schedule = AsyncIOScheduler()
+Schedule = None
 
 
 register_tortoise(
@@ -105,6 +105,8 @@ async def send_reports():
 
 @app.on_event("startup")
 async def setup_scheduler():
+    logger.info("Setup scheduler")
+    Schedule = AsyncIOScheduler()
     Schedule.start()
     Schedule.add_job(send_reports, trigger="interval", seconds=60 * 10, id="send_reports")
     Schedule.add_job(save_all_yesterday_stats, trigger="cron", hour="00", minute="00", id="save_all_yesterday_stats")
@@ -112,4 +114,6 @@ async def setup_scheduler():
 
 @app.on_event("shutdown")
 async def stop_scheduler():
-    Schedule.shutdown()
+    logger.info("Shutdown scheduler")
+    if Schedule is not None:
+        Schedule.shutdown()
