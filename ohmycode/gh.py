@@ -2,14 +2,14 @@ import asyncio
 import pprint
 from datetime import datetime
 
-import httpx
+from httpx import AsyncClient
 from constants import GITHUB_API_TOKEN
 from loguru import logger
 
 GH_URL = "https://api.github.com"
 
 
-async def get_rate_limit(client: httpx.AsyncClient) -> int:
+async def get_rate_limit(client: AsyncClient) -> int:
     resp = await client.get(f"{GH_URL}/rate_limit")
     rate_limit = resp.json()
     remaining = rate_limit["resources"]["core"]["remaining"]
@@ -18,7 +18,7 @@ async def get_rate_limit(client: httpx.AsyncClient) -> int:
     return remaining
 
 
-async def get_repo_info(client: httpx.AsyncClient, owner: str, name: str) -> dict:
+async def get_repo_info(client: AsyncClient, owner: str, name: str) -> dict:
     resp = await client.get(f"{GH_URL}/repos/{owner}/{name}")
     repo = resp.json()
 
@@ -26,7 +26,7 @@ async def get_repo_info(client: httpx.AsyncClient, owner: str, name: str) -> dic
     return repo
 
 
-async def get_repo_downloads(client: httpx.AsyncClient, owner: str, name: str) -> dict:
+async def get_repo_downloads(client: AsyncClient, owner: str, name: str) -> dict:
     resp = await client.get(f"{GH_URL}/repos/{owner}/{name}/releases")
     releases = resp.json()
 
@@ -40,7 +40,7 @@ async def get_repo_downloads(client: httpx.AsyncClient, owner: str, name: str) -
 
 
 async def get_repo_issues_n_pulls(
-    client: httpx.AsyncClient, owner: str, name: str, since: datetime
+    client: AsyncClient, owner: str, name: str, since: datetime
 ) -> dict:
     resp = await client.get(
         f"{GH_URL}/repos/{owner}/{name}/issues", params={"state": "all", "since": since}
@@ -59,20 +59,20 @@ async def get_repo_issues_n_pulls(
 
 
 async def get_repo_top_referrers(
-    client: httpx.AsyncClient, owner: str, name: str
+    client: AsyncClient, owner: str, name: str
 ) -> dict:
     resp = await client.get(f"{GH_URL}/repos/{owner}/{name}/traffic/popular/referrers")
     logger.info(f"Get repo {owner}/{name} referrers")
     return {"referrers": resp.json()}
 
 
-async def get_repo_traffic(client: httpx.AsyncClient, owner: str, name: str) -> dict:
+async def get_repo_traffic(client: AsyncClient, owner: str, name: str) -> dict:
     resp = await client.get(f"{GH_URL}/repos/{owner}/{name}/traffic/views")
     logger.info(f"Get repo {owner}/{name} traffic")
     return {"traffic": resp.json()}
 
 async def collect_repo_stats(owner, name) -> dict:
-    async with httpx.AsyncClient() as client:
+    async with AsyncClient() as client:
         client.headers["Authorization"] = f"token {GITHUB_API_TOKEN}"
 
         repo = await get_repo_info(client, owner, name)
@@ -86,21 +86,21 @@ async def collect_repo_stats(owner, name) -> dict:
 
 
 async def collect_repo_data(owner: str, name: str, since) -> dict:
-    client = httpx.AsyncClient()
-    client.headers["Authorization"] = f"token {GITHUB_API_TOKEN}"
-    await get_rate_limit(client)
-    tasks = [
-        get_repo_info(client, owner, name),
-        get_repo_downloads(client, owner, name),
-        get_repo_issues_n_pulls(client, owner, name, since),
-        get_repo_top_referrers(client, owner, name),
-        get_repo_traffic(client, owner, name),
-    ]
-    outputs = await asyncio.gather(*tasks)
+    async with AsyncClient() as client:
+        client.headers["Authorization"] = f"token {GITHUB_API_TOKEN}"
+        await get_rate_limit(client)
+        tasks = [
+            get_repo_info(client, owner, name),
+            get_repo_downloads(client, owner, name),
+            get_repo_issues_n_pulls(client, owner, name, since),
+            get_repo_top_referrers(client, owner, name),
+            get_repo_traffic(client, owner, name),
+        ]
+        outputs = await asyncio.gather(*tasks)
+
     result = {}
     for output in outputs:
         result.update(output)
-    await client.aclose()
 
     data = {
         "since": since.isoformat(),
