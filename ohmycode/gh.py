@@ -2,8 +2,8 @@ import asyncio
 import pprint
 from datetime import datetime
 
-from httpx import AsyncClient
 from constants import GITHUB_API_TOKEN
+from httpx import AsyncClient
 from loguru import logger
 
 GH_URL = "https://api.github.com"
@@ -58,9 +58,7 @@ async def get_repo_issues_n_pulls(
     return data
 
 
-async def get_repo_top_referrers(
-    client: AsyncClient, owner: str, name: str
-) -> dict:
+async def get_repo_top_referrers(client: AsyncClient, owner: str, name: str) -> dict:
     resp = await client.get(f"{GH_URL}/repos/{owner}/{name}/traffic/popular/referrers")
     logger.info(f"Get repo {owner}/{name} referrers")
     return {"referrers": resp.json()}
@@ -71,7 +69,8 @@ async def get_repo_traffic(client: AsyncClient, owner: str, name: str) -> dict:
     logger.info(f"Get repo {owner}/{name} traffic")
     return {"traffic": resp.json()}
 
-async def collect_repo_stats(owner, name) -> dict:
+
+async def collect_repo_stats(owner: str, name: str) -> dict:
     async with AsyncClient() as client:
         client.headers["Authorization"] = f"token {GITHUB_API_TOKEN}"
 
@@ -79,8 +78,8 @@ async def collect_repo_stats(owner, name) -> dict:
         downloads = await get_repo_downloads(client, owner, name)
 
     stats = {
-        "stars": repo['stargazers_count'],
-        "downloads": downloads['downloads'],
+        "stars": repo["stargazers_count"],
+        "downloads": downloads["downloads"],
     }
     return stats
 
@@ -110,10 +109,12 @@ async def collect_repo_data(owner: str, name: str, since) -> dict:
         "referrers": result["referrers"],
         "traffic": result["traffic"],
     }
-    data['traffic'].update({
-        "yesterday": result["traffic"]["views"][-2],
-        "two_days_ago": result["traffic"]["views"][-3]
-    })
+    data["traffic"].update(
+        {
+            "yesterday": result["traffic"]["views"][-2],
+            "two_days_ago": result["traffic"]["views"][-3],
+        }
+    )
 
     logger.info("Collected repo info")
     logger.info(pprint.pformat(data, indent=2))
@@ -121,6 +122,4 @@ async def collect_repo_data(owner: str, name: str, since) -> dict:
 
 
 if __name__ == "__main__":
-    asyncio.run(
-        get_repo_stats("leits", "MeetingBar")
-    )
+    asyncio.run(get_repo_stats("leits", "MeetingBar"))

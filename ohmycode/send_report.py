@@ -7,9 +7,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 import httpx
-from aiofile import async_open
 import jinja2
 import sentry_sdk
+from aiofile import async_open
 from constants import (
     ENV,
     HEADER_CHART_NAME,
@@ -31,7 +31,7 @@ if ENV != "local":
 
 
 async def render_mjml(data: dict) -> str:
-    async with async_open(TEMPLATE_FILE, 'r') as afp:
+    async with async_open(TEMPLATE_FILE, "r") as afp:
         template_str = await afp.read()
 
     template = jinja2.Template(template_str)
@@ -71,7 +71,7 @@ async def send_email(html: str, name: str, charts: dict):
         logger.info(resp.text)
 
 
-async def save_yesterday_stats(repo_id):
+async def save_yesterday_stats(repo_id: str):
     logger.info(f"Saving yesterdays stats for {repo_id}")
     repo = await Repository.get(id=repo_id)
 
@@ -83,7 +83,7 @@ async def save_yesterday_stats(repo_id):
     await repo.save()
 
 
-async def send_report(repo_id):
+async def send_report(repo_id: str):
     repo = await Repository.get(id=repo_id)
 
     today = datetime.now().replace(hour=0, minute=0)

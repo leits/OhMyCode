@@ -31,10 +31,10 @@ def plot_header(data: dict) -> bytes:
         go.Indicator(
             title={"text": "Views"},
             mode="number+delta",
-            value=data["traffic"]["yesterday"]['count'],
+            value=data["traffic"]["yesterday"]["count"],
             domain={"x": [0.5, 0.75], "y": [0, 1]},
             delta={
-                "reference": data["traffic"]["two_days_ago"]['count'],
+                "reference": data["traffic"]["two_days_ago"]["count"],
                 "relative": True,
             },
         )
@@ -44,10 +44,10 @@ def plot_header(data: dict) -> bytes:
         go.Indicator(
             title={"text": "Uniques visitors"},
             mode="number+delta",
-            value=data["traffic"]["yesterday"]['uniques'],
+            value=data["traffic"]["yesterday"]["uniques"],
             domain={"x": [0.75, 1], "y": [0, 1]},
             delta={
-                "reference": data["traffic"]["two_days_ago"]['uniques'],
+                "reference": data["traffic"]["two_days_ago"]["uniques"],
                 "relative": True,
             },
         )
@@ -68,9 +68,9 @@ def plot_views(views: list) -> bytes:
     y2 = []
 
     for day in views:
-        x.append(day['timestamp'])
-        y1.append(day['count'])
-        y2.append(day['uniques'])
+        x.append(day["timestamp"])
+        y1.append(day["count"])
+        y2.append(day["uniques"])
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=x, y=y1, mode="lines+markers", name="count"))
