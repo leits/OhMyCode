@@ -7,6 +7,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 import httpx
+from aiofile import async_open
 import jinja2
 import sentry_sdk
 from constants import (
@@ -21,7 +22,7 @@ from constants import (
     VIEWS_CHART_NAME,
 )
 from db import Repository, init_db
-from gh import collect_github_data, get_repo, get_repo_downloads
+from gh import collect_repo_data, collect_repo_stats
 from loguru import logger
 from plots import plot_header, plot_views
 
@@ -29,11 +30,11 @@ if ENV != "local":
     sentry_sdk.init(SENTRY_DSN, environment=ENV)
 
 
-def render_mjml(data: dict) -> str:
-    templateLoader = jinja2.FileSystemLoader(searchpath="./")
-    templateEnv = jinja2.Environment(loader=templateLoader)
+async def render_mjml(data: dict) -> str:
+    async with async_open(TEMPLATE_FILE, 'r') as afp:
+        template_str = await afp.read()
 
-    template = templateEnv.get_template(TEMPLATE_FILE)
+    template = jinja2.Template(template_str)
     mjml = template.render(data=data, now=datetime.now())
 
     logger.info("Rendered mjml")
@@ -73,12 +74,9 @@ async def send_email(html: str, charts: dict):
 async def save_yesterday_stats(repo_id):
     logger.info(f"Saving yesterdays stats for {repo_id}")
     repo = await Repository.get(id=repo_id)
-    gh_repo = get_repo(repo.owner, repo.name)
 
-    yesterday_stats = {
-        "stars": gh_repo.stargazers_count,
-        "downloads": get_repo_downloads(gh_repo),
-    }
+    yesterday_stats = await collect_repo_stats(repo.owner, repo.name)
+
     yesterday = datetime.now() - timedelta(days=1)
     repo.stats[yesterday.strftime("%Y-%m-%d")] = yesterday_stats
     logger.info(f"Saved yesterdays stats for {repo_id}: {yesterday_stats}")
@@ -92,7 +90,7 @@ async def send_report(repo_id):
     yesterday = today - timedelta(days=1)
     two_days_ago = today - timedelta(days=2)
 
-    data = collect_github_data(yesterday, repo.owner, repo.name)
+    data = await collect_repo_data(repo.owner, repo.name, yesterday)
     data["yesterday"] = repo.stats[yesterday.strftime("%Y-%m-%d")]
     data["two_days_ago"] = repo.stats.get(two_days_ago.strftime("%Y-%m-%d"), {})
     logger.info(f"Got yesterdays stats for {repo_id}: {data['yesterday']}")
@@ -103,7 +101,7 @@ async def send_report(repo_id):
     data["views_image_src"] = f"cid:{VIEWS_CHART_NAME}"
     data["header_image_src"] = f"cid:{HEADER_CHART_NAME}"
 
-    mjml = render_mjml(data)
+    mjml = await render_mjml(data)
     charts = {VIEWS_CHART_NAME: views_chart, HEADER_CHART_NAME: header_chart}
 
     async with httpx.AsyncClient() as client:

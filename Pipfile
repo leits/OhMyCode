@@ -4,7 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pygithub = "*"
 jinja2 = "*"
 python-dotenv = "*"
 sentry-sdk = "*"
@@ -17,6 +16,7 @@ tortoise-orm = "*"
 httpx = "*"
 asyncpg = "*"
 loguru = "*"
+aiofile = "*"
 
 [dev-packages]
 
