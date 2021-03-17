@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
+from uuid import uuid4
 import asyncio
 from datetime import datetime, timedelta
 from email.mime.image import MIMEImage
@@ -98,11 +99,14 @@ async def send_report(repo_id: str):
     views_chart = plot_views(data["traffic"]["views"])
     header_chart = plot_header(data)
 
-    data["views_image_src"] = f"cid:{VIEWS_CHART_NAME}"
-    data["header_image_src"] = f"cid:{HEADER_CHART_NAME}"
+    # this is because some clients cache images between different emails
+    views_chart_name = f"views_chart_{uuid4()}"
+    header_chart_name = f"header_chart_{uuid4()}"
+    data["views_image_src"] = f"cid:{views_chart_name}"
+    data["header_image_src"] = f"cid:{header_chart_name}"
 
     mjml = await render_mjml(data)
-    charts = {VIEWS_CHART_NAME: views_chart, HEADER_CHART_NAME: header_chart}
+    charts = {views_chart_name: views_chart, header_chart_name: header_chart}
 
     async with httpx.AsyncClient() as client:
         resp = await client.post(
