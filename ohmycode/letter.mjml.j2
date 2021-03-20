@@ -20,18 +20,21 @@
             <col span="1" style="width: 30px"></col>
             <col span="1" style="width: 50px"></col>
             <col span="1" style="width: auto"></col>
+            <col span="1" style="width: 30px"></col>
           </colgroup>
           {% for issue in data.issues %}
             <tr>
               <td> {{ "🟢" if issue.state == "open" else "🔴" }}</td>
               <td> <a href="{{ issue.html_url }}">#{{ issue.number }}</a> </td>
               <td> {{ issue.title }} {{ "🆕" if issue.created_at < data.since else "" }} </td>
+              <td> 💬 {{ issue.comments }} </td>
             </tr>
             {% else %}
             <tr>
               <td></td>
               <td></td>
               <td>No updates</td>
+              <td></td>
             </tr>
             {% endfor %}
         </mj-table>
@@ -46,18 +49,21 @@
             <col span="1" style="width: 30px"></col>
             <col span="1" style="width: 50px"></col>
             <col span="1" style="width: auto"></col>
+            <col span="1" style="width: 30px"></col>
           </colgroup>
           {% for pull in data.pulls %}
             <tr>
               <td> {{ "🟢" if pull.state == "open" else "🔴" }}</td>
               <td> <a href="{{ pull.html_url }}">#{{ pull.number }}</a> </td>
               <td> {{ pull.title }} {{ "🆕" if pull.created_at < data.since else "" }} </td>
+              <td> 💬 {{ pull.comments }} </td>
             </tr>
           {% else %}
             <tr>
               <td></td>
               <td></td>
               <td>No updates</td>
+              <td></td>
             </tr>
           {% endfor %}
         </mj-table>
