@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
-from uuid import uuid4
 import asyncio
 from datetime import datetime, timedelta
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from uuid import uuid4
 
 import httpx
 import jinja2
@@ -13,14 +13,12 @@ import sentry_sdk
 from aiofile import async_open
 from constants import (
     ENV,
-    HEADER_CHART_NAME,
     MAILGUN_API_KEY,
     MAILGUN_DOMAIN,
     MJML_APP_ID,
     MJML_SECRET_KEY,
     SENTRY_DSN,
     TEMPLATE_FILE,
-    VIEWS_CHART_NAME,
 )
 from db import Repository, init_db
 from gh import collect_repo_data, collect_repo_stats
@@ -99,7 +97,7 @@ async def send_report(repo_id: str):
     views_chart = plot_views(data["traffic"]["views"])
     header_chart = plot_header(data)
 
-    # this is because some clients cache images between different emails
+    # uuid used because some clients cache images between different emails
     views_chart_name = f"views_chart_{uuid4()}"
     header_chart_name = f"header_chart_{uuid4()}"
     data["views_image_src"] = f"cid:{views_chart_name}"

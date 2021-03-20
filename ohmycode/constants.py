@@ -17,5 +17,3 @@ MJML_SECRET_KEY = os.getenv("MJML_SECRET_KEY")
 PORT = os.environ.get("PORT", 5000)
 
 TEMPLATE_FILE = "./ohmycode/letter.mjml.j2"
-VIEWS_CHART_NAME = "views_chart"
-HEADER_CHART_NAME = "header_chart"
