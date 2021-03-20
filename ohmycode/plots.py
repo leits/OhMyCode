@@ -53,9 +53,13 @@ def plot_header(data: dict) -> bytes:
         )
     )
 
-    fig.update_layout(width=1200, height=300)
-
-    fig.update_layout(margin=dict(l=5, r=5, t=5, b=5))
+    fig.update_layout(
+        margin=dict(l=5, r=5, t=5, b=5),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        height=300,
+        width=1200,
+    )
 
     logger.info("Rendered header chart")
     # fig.show()
@@ -76,8 +80,12 @@ def plot_views(views: list) -> bytes:
     fig.add_trace(go.Scatter(x=x, y=y1, mode="lines+markers", name="count"))
     fig.add_trace(go.Scatter(x=x, y=y2, mode="lines+markers", name="uniques"))
 
-    fig.update_layout(margin=dict(l=5, r=5, t=5, b=5))
-    fig.update_layout(height=300)
+    fig.update_layout(
+        margin=dict(l=5, r=5, t=5, b=5),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        height=300,
+    )
 
     logger.info("Rendered views chart")
     # fig.show()
