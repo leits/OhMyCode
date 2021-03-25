@@ -1,6 +1,6 @@
 import asyncio
 import pprint
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from constants import GITHUB_API_TOKEN
 from httpx import AsyncClient
@@ -38,8 +38,23 @@ async def get_repo_downloads(client: AsyncClient, owner: str, name: str) -> dict
     logger.info(f"Got repo {owner}/{name} downloads: {downloads}")
     return {"downloads": downloads}
 
+async def get_repo_pulls(
+    client: AsyncClient, owner: str, name: str, since: datetime
+) -> dict:
+    logger.info(f"Get repo {owner}/{name} issues")
 
-async def get_repo_issues_n_pulls(
+    resp = await client.get(
+        f"{GH_URL}/repos/{owner}/{name}/pulls", params={"state": "all"}
+    )
+    pulls = resp.json()
+
+    data = {
+        "pulls": [p for p in pulls if p['updated_at'] > since.isoformat()]
+    }
+    logger.info(f"Get repo {owner}/{name} issues")
+    return data
+
+async def get_repo_issues(
     client: AsyncClient, owner: str, name: str, since: datetime
 ) -> dict:
     resp = await client.get(
@@ -47,14 +62,10 @@ async def get_repo_issues_n_pulls(
     )
     issues = resp.json()
 
-    data = {"pulls": [], "issues": []}
-    for issue in issues:
-        if issue.get("pull_request"):
-            data["pulls"].append(issue)
-        else:
-            data["issues"].append(issue)
-
-    logger.info(f"Get repo {owner}/{name} issues&pulls")
+    data = {
+        "issues": [i for i in issues if i.get("pull_request") is None]
+    }
+    logger.info(f"Get repo {owner}/{name} issues")
     return data
 
 
@@ -91,7 +102,8 @@ async def collect_repo_data(owner: str, name: str, since) -> dict:
         tasks = [
             get_repo_info(client, owner, name),
             get_repo_downloads(client, owner, name),
-            get_repo_issues_n_pulls(client, owner, name, since),
+            get_repo_issues(client, owner, name, since),
+            get_repo_pulls(client, owner, name, since),
             get_repo_top_referrers(client, owner, name),
             get_repo_traffic(client, owner, name),
         ]
@@ -119,7 +131,3 @@ async def collect_repo_data(owner: str, name: str, since) -> dict:
     logger.info("Collected repo info")
     logger.info(pprint.pformat(data, indent=2))
     return data
-
-
-if __name__ == "__main__":
-    asyncio.run(get_repo_stats("leits", "MeetingBar"))
