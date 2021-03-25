@@ -55,7 +55,7 @@
             <tr>
               <td>
               {% if pull.state == "open" %} 🟢
-              {% elif pull.merged %} 🟣
+              {% elif pull.merged_at %} 🟣
               {% else %} 🔴
               {% endif %}
               </td>
