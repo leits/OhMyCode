@@ -53,7 +53,12 @@
           </colgroup>
           {% for pull in data.pulls %}
             <tr>
-              <td> {{ "🟢" if pull.state == "open" else "🔴" }}</td>
+              <td>
+              {% if pull.state == "open" %} 🟢
+              {% elif pull.merged %} 🟣
+              {% else %} 🔴
+              {% endif %}
+              </td>
               <td> <a href="{{ pull.html_url }}">#{{ pull.number }}</a> </td>
               <td> {{ pull.title }} {{ "🆕" if pull.created_at < data.since else "" }} </td>
               <td> 💬 {{ pull.comments }} </td>
