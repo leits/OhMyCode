@@ -8,15 +8,17 @@ jinja2 = "*"
 python-dotenv = "*"
 sentry-sdk = "*"
 plotly = "*"
-kaleido = "0.2.1"
 isort = "*"
 fastapi = "*"
 uvicorn = {extras = ["standard"], version = "*"}
-tortoise-orm = "*"
 httpx = "*"
 asyncpg = "*"
 loguru = "*"
 aiofile = "*"
+kaleido = "*"
+tortoise-orm = "*"
+httpx-oauth = "*"
+fastapi-users = {extras = ["oauth", "tortoise-orm"], version = "*"}
 
 [dev-packages]
 

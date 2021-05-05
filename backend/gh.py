@@ -1,6 +1,6 @@
 import asyncio
 import pprint
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from constants import GITHUB_API_TOKEN
 from httpx import AsyncClient
@@ -38,21 +38,36 @@ async def get_repo_downloads(client: AsyncClient, owner: str, name: str) -> dict
     logger.info(f"Got repo {owner}/{name} downloads: {downloads}")
     return {"downloads": downloads}
 
+
 async def get_repo_pulls(
     client: AsyncClient, owner: str, name: str, since: datetime
 ) -> dict:
     logger.info(f"Get repo {owner}/{name} issues")
+    pulls = []
+    check_next_page = True
+    page = 1
+    while check_next_page:
+        params = {
+            "state": "all",
+            "sort": "updated",
+            "direction": "desc",
+            "per_page": 100,
+            "page": page,
+        }
+        resp = await client.get(f"{GH_URL}/repos/{owner}/{name}/pulls", params=params)
+        responce = resp.json()
+        if len(responce) == 0:
+            break
+        for pull in responce:
+            if pull["updated_at"] > since.isoformat():
+                pulls.append(pull)
+            else:
+                check_next_page = False
+                break
 
-    resp = await client.get(
-        f"{GH_URL}/repos/{owner}/{name}/pulls", params={"state": "all"}
-    )
-    pulls = resp.json()
-
-    data = {
-        "pulls": [p for p in pulls if p['updated_at'] > since.isoformat()]
-    }
     logger.info(f"Get repo {owner}/{name} issues")
-    return data
+    return {"pulls": pulls}
+
 
 async def get_repo_issues(
     client: AsyncClient, owner: str, name: str, since: datetime
@@ -62,9 +77,7 @@ async def get_repo_issues(
     )
     issues = resp.json()
 
-    data = {
-        "issues": [i for i in issues if i.get("pull_request") is None]
-    }
+    data = {"issues": [i for i in issues if i.get("pull_request") is None]}
     logger.info(f"Get repo {owner}/{name} issues")
     return data
 
@@ -131,3 +144,10 @@ async def collect_repo_data(owner: str, name: str, since) -> dict:
     logger.info("Collected repo info")
     logger.info(pprint.pformat(data, indent=2))
     return data
+
+
+async def get_user_info(token: str) -> dict:
+    async with AsyncClient() as client:
+        client.headers["Authorization"] = f"token {token}"
+        resp = await client.get(f"{GH_URL}/user")
+        return resp.json()

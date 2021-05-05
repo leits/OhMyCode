@@ -15,4 +15,4 @@ RUN rm Pipfile.lock
 
 COPY . /app
 
-CMD ["python3", "/app/ohmycode/app.py" ]
+CMD ["uvicorn", "app:app", "--app-dir backend", "--reload", "--reload-dir backend" ]

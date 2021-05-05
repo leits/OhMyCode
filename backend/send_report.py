@@ -11,7 +11,15 @@ import httpx
 import jinja2
 import sentry_sdk
 from aiofile import async_open
-from constants import ENV, MAILGUN_API_KEY, MAILGUN_DOMAIN, MJML_APP_ID, MJML_SECRET_KEY, SENTRY_DSN, TEMPLATE_FILE
+from constants import (
+    ENV,
+    MAILGUN_API_KEY,
+    MAILGUN_DOMAIN,
+    MJML_APP_ID,
+    MJML_SECRET_KEY,
+    SENTRY_DSN,
+    TEMPLATE_FILE,
+)
 from db import Repository, init_db
 from gh import collect_repo_data, collect_repo_stats
 from loguru import logger

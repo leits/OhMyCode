@@ -36,6 +36,7 @@ async def send_reports():
 
     await asyncio.gather(*tasks)
 
+
 async def send_instant_report(repo_id):
     logger.info("Check repos to send report")
     if repo_id is None:
@@ -47,8 +48,10 @@ async def send_instant_report(repo_id):
 
 async def main():
     parser = argparse.ArgumentParser(description="OhMyCode CLI")
-    parser.add_argument("command", choices=["send_reports", "gather_stats", "send_instant_report"])
-    parser.add_argument('repo_id', nargs='?', default=None)
+    parser.add_argument(
+        "command", choices=["send_reports", "gather_stats", "send_instant_report"]
+    )
+    parser.add_argument("repo_id", nargs="?", default=None)
     args = parser.parse_args()
     if args.command == "send_reports":
         await send_reports()
